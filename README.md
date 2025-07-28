@@ -6,4 +6,4 @@
 
 ## UML Diagram(s)
 
-![placeholder image](img/placeholder)
+![Partial UML draft](img/partial_draft.svg)
