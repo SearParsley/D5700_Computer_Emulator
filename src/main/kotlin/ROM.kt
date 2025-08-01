@@ -6,7 +6,7 @@ class ROM(startAddress: UShort, size: UShort, initialData: List<UByte>) : Memory
             if (i < size.toInt()) {
                 memoryArray[i] = initialData[i]
             } else {
-                println("ROM Initialization Warning: Initial data for ROM at 0x${startAddress.toString(16).padStart(4, '0')} exceeds its defined size (${size}). Data truncated.")
+                println("ROM Initialization Warning: Initial data for ROM at 0x${startAddress.toString(16).uppercase().padStart(4, '0')} exceeds its defined size (${size}). Data truncated.")
                 break
             }
         }
@@ -18,7 +18,7 @@ class ROM(startAddress: UShort, size: UShort, initialData: List<UByte>) : Memory
     }
 
     override fun writeByte(address: UShort, value: UByte) {
-        throw RomWriteAttemptException("Attempted to write to ROM at address 0x${address.toString(16).padStart(4, '0')}.")
+        throw RomWriteAttemptException("Attempted to write to ROM at address 0x${address.toString(16).uppercase().padStart(4, '0')}.")
     }
 }
 
