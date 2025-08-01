@@ -11,4 +11,19 @@ object Registers {
     var  T: UByte   = 0u
     var  A: UShort  = 0u
     var  M: Boolean = false
+
+    internal fun resetForTesting() {
+        R0 = 0u
+        R1 = 0u
+        R2 = 0u
+        R3 = 0u
+        R4 = 0u
+        R5 = 0u
+        R6 = 0u
+        R7 = 0u
+         P = 0u
+         T = 0u
+         A = 0u
+         M = false
+    }
 }
