@@ -1,6 +1,3 @@
-// src/test/kotlin/com/d5700/emulator/MemoryControllerTest.kt
-package com.d5700.emulator
-
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -30,7 +27,6 @@ class MemoryControllerTest {
 
     @BeforeEach
     fun setup() {
-        // Reset the singleton before each test to ensure isolation
         MemoryController.resetForTesting()
         System.setOut(PrintStream(outputStreamCaptor)) // Redirect System.out
     }
@@ -47,19 +43,12 @@ class MemoryControllerTest {
         val testRomData = listOf<UByte>(0xAAu, 0xBBu, 0xCCu)
         val testRomSize = testRomData.size.toUShort()
         val testRamSize = 256u.toUShort()
-
         MemoryController.initializeMemoryMap(ROM_TEST_START, testRomData, RAM_TEST_START, testRamSize)
-
-        // Verify ROM range
         assertEquals(0xAAu.toUByte(), MemoryController.readByte(ROM_TEST_START))
         assertEquals(0xCCu.toUByte(), MemoryController.readByte((ROM_TEST_START + 2u).toUShort()))
-
-        // Verify RAM range
         val ramTestAddress = RAM_TEST_START
         MemoryController.writeByte(ramTestAddress, 0x12u)
         assertEquals(0x12u.toUByte(), MemoryController.readByte(ramTestAddress))
-
-        // Verify a byte between ROM and RAM is unmapped
         val unmappedAddress = (ROM_TEST_START + testRomSize).toUShort()
         outputStreamCaptor.reset()
         assertEquals(0xFFu.toUByte(), MemoryController.readByte(unmappedAddress))
@@ -70,11 +59,9 @@ class MemoryControllerTest {
     @DisplayName("readByte returns 0xFF and logs error for unmapped addresses")
     fun testReadByteUnmappedAddress() {
         MemoryController.initializeMemoryMap(ROM_TEST_START, listOf<UByte>(0x01u), RAM_TEST_START, 10u)
-        val unmappedAddress = 0x2000u.toUShort() // Address outside the 1KB RAM
+        val unmappedAddress = 0x2000u.toUShort()
         outputStreamCaptor.reset()
-
         val result = MemoryController.readByte(unmappedAddress)
-
         assertEquals(0xFFu.toUByte(), result)
         val capturedOutput = outputStreamCaptor.toString().trim()
         assertTrue(capturedOutput.contains("Memory Access Error: No device mapped to address 0x${unmappedAddress.toString(16).uppercase().padStart(4, '0')}"))
@@ -86,9 +73,7 @@ class MemoryControllerTest {
         MemoryController.initializeMemoryMap(ROM_TEST_START, listOf<UByte>(0x01u), RAM_TEST_START, 10u)
         val unmappedAddress = 0x2000u.toUShort()
         outputStreamCaptor.reset()
-
         MemoryController.writeByte(unmappedAddress, 0xAAu)
-
         val capturedOutput = outputStreamCaptor.toString().trim()
         assertTrue(capturedOutput.contains("Memory Access Error: No device mapped to address 0x${unmappedAddress.toString(16).uppercase().padStart(4, '0')}"))
     }
@@ -98,7 +83,6 @@ class MemoryControllerTest {
     fun testReadByteRoutesToRom() {
         val romData = listOf<UByte>(0x12u, 0x34u)
         MemoryController.initializeMemoryMap(ROM_TEST_START, romData, RAM_TEST_START, 10u)
-
         val value = MemoryController.readByte(ROM_TEST_START)
         assertEquals(0x12u.toUByte(), value)
         val value2 = MemoryController.readByte((ROM_TEST_START + 1u).toUShort())
@@ -127,7 +111,6 @@ class MemoryControllerTest {
     fun testWriteByteToRomThrowsException() {
         val romData = listOf<UByte>(0x12u)
         MemoryController.initializeMemoryMap(ROM_TEST_START, romData, RAM_TEST_START, 10u)
-
         val romAddress = ROM_TEST_START
         assertThrows(RomWriteAttemptException::class.java) {
             MemoryController.writeByte(romAddress, 0xFFu)
@@ -137,37 +120,24 @@ class MemoryControllerTest {
     @Test
     @DisplayName("addDevice correctly adds and routes to concrete I/O devices")
     fun testAddDeviceAndRouting() {
-        // Initialize the memory map with standard RAM/ROM
         val romData = listOf<UByte>(0x01u)
         val ramSize = 10u.toUShort()
         MemoryController.initializeMemoryMap(ROM_TEST_START, romData, RAM_TEST_START, ramSize)
-
-        // Create concrete I/O devices to test the addDevice method
         val keyboardDevice = MemoryDeviceFactory.createKeyboardInputDevice(KEYBOARD_TEST_START, 1u)
         val displayDevice = MemoryDeviceFactory.createAsciiDisplayDevice(DISPLAY_TEST_START, 64u)
-
-        // Add them to the MemoryController
         MemoryController.addDevice(keyboardDevice)
         MemoryController.addDevice(displayDevice)
-
-        // --- Test routing to the KeyboardInputDevice (a blocking device) ---
         val keyboardInput = "AB"
         val expectedValue = 0xABu.toUByte()
         val inputStream = ByteArrayInputStream(keyboardInput.toByteArray())
         System.setIn(inputStream)
-
         val readValueFromKeyboard = MemoryController.readByte(KEYBOARD_TEST_START)
         assertEquals(expectedValue, readValueFromKeyboard)
-
-        // --- Test routing to the AsciiDisplayDevice (a read/write device) ---
         val displayTestAddress = (DISPLAY_TEST_START + 5u).toUShort()
         val writeValue = 'Z'.code.toUByte()
         MemoryController.writeByte(displayTestAddress, writeValue)
-
         val readValueFromDisplay = MemoryController.readByte(displayTestAddress)
         assertEquals(writeValue, readValueFromDisplay)
-
-        // Ensure ROM/RAM still work
         assertEquals(0x01u.toUByte(), MemoryController.readByte(ROM_TEST_START))
     }
 }
