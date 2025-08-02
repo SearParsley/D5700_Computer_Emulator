@@ -2,8 +2,10 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
+import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
 
@@ -18,11 +20,21 @@ class MemoryDeviceTest {
     private val DISPLAY_TEST_START = 0xF000u.toUShort()
     private val DISPLAY_TEST_SIZE = 64u.toUShort()
 
+    private val KEYBOARD_TEST_START = 0xFE00u.toUShort() // Address for KeyboardInputDevice
+
+    private val standardOut = System.out
+    private val standardIn = System.`in` // Store original System.in
     private val outputStreamCaptor = ByteArrayOutputStream()
 
     @BeforeEach
     fun setUpOutputCapture() {
         System.setOut(PrintStream(outputStreamCaptor))
+    }
+
+    @AfterEach // Restore original System.out and System.in after each test
+    fun restoreSystemIo() {
+        System.setOut(standardOut)
+        System.setIn(standardIn)
     }
 
     @ParameterizedTest(name = "isInRange: Address 0x{0} should be in ROM range (0x{1} to 0x{2}) -> {3}")
@@ -199,5 +211,78 @@ class MemoryDeviceTest {
             """.trimIndent()
         val actualOutput = display.getRenderedScreen().trimIndent()
         assertEquals(expectedOutput, actualOutput)
+    }
+
+    @ParameterizedTest(name = "Keyboard read: input '{0}' -> 0x{1}")
+    @CsvSource(
+        "FF, FF",        // Valid 2-digit hex
+        "0A, 0A",        // Valid 2-digit hex with leading zero
+        "B, 0B",         // Valid 1-digit hex
+        "123456, 56",    // More than 2 digits, discards extra
+        "0xCD, CD",      // With 0x prefix
+        "0xABCDEF, EF",  // With 0x prefix and too many digits
+        " , 00",         // Empty string
+        "'', 00",        // A truly empty string
+        "0x, 00",        // 0x prefix only
+        "G, 00",         // Invalid hex character
+        "Hello, 00",     // Non-hex string
+        "null, 00"       // Test case with 'null' value
+    )
+    @DisplayName("KeyboardInputDevice readByte parses input correctly")
+    fun testKeyboardReadByteParsing(inputString: String?, expectedHex: String) {
+        val keyboard = KeyboardInputDevice(KEYBOARD_TEST_START, 1u)
+        val expectedValue = expectedHex.toUByte(16)
+
+        // Convert the nullable inputString to a non-nullable one for the test logic.
+        val inputStreamString = inputString ?: ""
+
+        // Redirect System.in for this test
+        val inputStream = ByteArrayInputStream(inputStreamString.toByteArray())
+        System.setIn(inputStream)
+
+        // Perform the read
+        val actualValue = keyboard.readByte(KEYBOARD_TEST_START)
+
+        // Assert the returned value
+        assertEquals(expectedValue, actualValue, "Input '$inputString' should parse to 0x${expectedHex}")
+
+        // Optionally, assert the console output messages
+        val capturedOutput = outputStreamCaptor.toString().trim()
+        assertTrue(capturedOutput.contains("Keyboard: awaiting user input"))
+        assertTrue(capturedOutput.contains("Keyboard: input received"))
+        // You might add more specific assertions for the "Warning" messages if input is invalid
+    }
+
+    @Test
+    @DisplayName("KeyboardInputDevice readByte handles invalid offset")
+    fun testKeyboardReadByteInvalidOffset() {
+        val keyboard = KeyboardInputDevice(KEYBOARD_TEST_START, 1u)
+        val invalidAddress = (KEYBOARD_TEST_START + 1u).toUShort() // Offset 1, but size is 1
+
+        // Redirect System.in with dummy input so readLine() doesn't block
+        val inputStream = ByteArrayInputStream("00".toByteArray())
+        System.setIn(inputStream)
+
+        val result = keyboard.readByte(invalidAddress)
+
+        assertEquals(0xFFu.toUByte(), result) // Should return 0xFF for invalid offset
+        val capturedOutput = outputStreamCaptor.toString().trim()
+        assertTrue(capturedOutput.contains("Warning: Reading from invalid offset 0x1 in KeyboardInputDevice."))
+    }
+
+    @Test
+    @DisplayName("KeyboardInputDevice writeByte throws KeyboardWriteAttemptException")
+    fun testKeyboardWriteByteThrowsException() {
+        val keyboard = KeyboardInputDevice(KEYBOARD_TEST_START, 1u)
+        val addressToAttemptWrite = KEYBOARD_TEST_START
+        val valueToAttemptWrite = 0xAAu.toUByte()
+
+        // Assert that calling writeByte on KeyboardInputDevice throws the specific exception
+        val exception = assertThrows(KeyboardWriteAttemptException::class.java) {
+            keyboard.writeByte(addressToAttemptWrite, valueToAttemptWrite)
+        }
+
+        // Optionally, assert the exception message
+        assertTrue(exception.message!!.contains("Attempted to write to read-only KeyboardInputDevice at 0x${addressToAttemptWrite.toString(16).uppercase().padStart(4, '0')}."))
     }
 }
