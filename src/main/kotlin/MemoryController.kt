@@ -2,18 +2,18 @@ object MemoryController {
 
     private val memoryDevices = mutableListOf<MemoryDevice>()
 
-    fun initializeMemoryMap(romData: List<UByte>, ramSize: UShort) {
+    fun initializeMemoryMap(romStart: UShort, romData: List<UByte>, ramStart: UShort, ramSize: UShort) {
         memoryDevices.clear()
 
-        val rom = ROM(Constants.ROM_START_ADDRESS, Constants.ROM_SIZE_BYTES.toUShort(), romData)
+        val rom = MemoryDeviceFactory.createROM(romStart, romData.size.toUShort(), romData)
         addDevice(rom)
 
-        val ram = RAM(Constants.RAM_START_ADDRESS, ramSize)
+        val ram = MemoryDeviceFactory.createRAM(ramStart, ramSize)
         addDevice(ram)
 
         println("MemoryController: Memory map initialized.")
-        println("  ROM: 0x${Constants.ROM_START_ADDRESS.toString(16).uppercase().padStart(4, '0')} - 0x${(Constants.ROM_START_ADDRESS + Constants.ROM_SIZE_BYTES.toUByte() - 1u).toString(16).uppercase().padStart(4, '0')} (${Constants.ROM_SIZE_BYTES} bytes)")
-        println("  RAM: 0x${Constants.RAM_START_ADDRESS.toString(16).uppercase().padStart(4, '0')} - 0x${(Constants.RAM_START_ADDRESS + ramSize - 1u).toString(16).uppercase().padStart(4, '0')} (${ramSize} bytes)")
+        println("  ROM: 0x${romStart.toString(16).uppercase().padStart(4, '0')} - 0x${(romStart + romData.size.toUShort() - 1u).toString(16).uppercase().padStart(4, '0')} (${romData.size} bytes)")
+        println("  RAM: 0x${ramStart.toString(16).uppercase().padStart(4, '0')} - 0x${(ramStart + ramSize - 1u).toString(16).uppercase().padStart(4, '0')} (${ramSize} bytes)")
     }
 
     fun addDevice(device: MemoryDevice) {
