@@ -108,6 +108,11 @@ class MemoryDeviceTest {
         val testValue1 = 0xABu.toUByte()
         ram.writeByte(testAddress1, testValue1)
         assertEquals(testValue1, ram.readByte(testAddress1))
+        val invalidAddress = (RAM_TEST_START + RAM_TEST_SIZE + 1u).toUShort()
+        val exception = assertThrows(IndexOutOfBoundsException::class.java) {
+            ram.writeByte(invalidAddress, testValue1)
+        }
+        assertTrue(exception.message!!.contains("Address 0x${invalidAddress.toString(16).uppercase().padStart(4, '0')} is not in range for device starting at 0x${RAM_TEST_START.toString(16).uppercase().padStart(4, '0')}."))
     }
 
     @Test
@@ -249,10 +254,10 @@ class MemoryDeviceTest {
         val invalidAddress = (KEYBOARD_TEST_START + 1u).toUShort()
         val inputStream = ByteArrayInputStream("00".toByteArray())
         System.setIn(inputStream)
-        val result = keyboard.readByte(invalidAddress)
-        assertEquals(0xFFu.toUByte(), result) // Should return 0xFF for invalid offset
-        val capturedOutput = outputStreamCaptor.toString().trim()
-        assertTrue(capturedOutput.contains("Warning: Reading from invalid offset 0x0001 in KeyboardInputDevice."))
+        val exception = assertThrows(IndexOutOfBoundsException::class.java) {
+            keyboard.readByte(invalidAddress)
+        }
+        assertTrue(exception.message!!.contains("Address 0xFE01 is not in range for device starting at 0xFE00."))
     }
 
     @Test
