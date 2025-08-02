@@ -3,7 +3,7 @@ class KeyboardInputDevice(startAddress: UShort, size: UShort) : MemoryDevice(sta
     override fun readByte(address: UShort): UByte {
         val offset = getLocalOffset(address)
         if (offset >= Constants.KEYBOARD_BUFFER_SIZE_BYTES.toUShort()) {
-            println("Warning: Reading from invalid offset 0x${offset.toString(16)} in KeyboardInputDevice.")
+            println("Warning: Reading from invalid offset 0x${offset.toString(16).uppercase().padStart(4, '0')} in KeyboardInputDevice.")
             return 0xFFu
         }
         println("Keyboard: awaiting user input")

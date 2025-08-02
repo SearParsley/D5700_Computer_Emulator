@@ -267,7 +267,7 @@ class MemoryDeviceTest {
 
         assertEquals(0xFFu.toUByte(), result) // Should return 0xFF for invalid offset
         val capturedOutput = outputStreamCaptor.toString().trim()
-        assertTrue(capturedOutput.contains("Warning: Reading from invalid offset 0x1 in KeyboardInputDevice."))
+        assertTrue(capturedOutput.contains("Warning: Reading from invalid offset 0x0001 in KeyboardInputDevice."))
     }
 
     @Test
