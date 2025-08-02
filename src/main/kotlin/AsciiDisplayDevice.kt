@@ -1,13 +1,11 @@
 class AsciiDisplayDevice(startAddress: UShort, size: UShort) : MemoryDevice(startAddress, size) {
     private val screenBuffer = MutableList<UByte>(size.toInt()) { Constants.ASCII_DISPLAY_DEFAULT_CHAR_CODE.toUByte() }
 
-    override fun readByte(address: UShort): UByte {
-        val offset = getLocalOffset(address)
+    override fun doReadByte(offset: UShort): UByte {
         return screenBuffer[offset.toInt()]
     }
 
-    override fun writeByte(address: UShort, value: UByte) {
-        val offset = getLocalOffset(address)
+    override fun doWriteByte(offset: UShort, value: UByte) {
         screenBuffer[offset.toInt()] = value
     }
 

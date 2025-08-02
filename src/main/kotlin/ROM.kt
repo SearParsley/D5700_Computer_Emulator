@@ -12,13 +12,12 @@ class ROM(startAddress: UShort, size: UShort, initialData: List<UByte>) : Memory
         }
     }
 
-    override fun readByte(address: UShort): UByte {
-        val offset = getLocalOffset(address)
+    override fun doReadByte(offset: UShort): UByte {
         return memoryArray[offset.toInt()]
     }
 
-    override fun writeByte(address: UShort, value: UByte) {
-        throw RomWriteAttemptException("Attempted to write to ROM at address 0x${address.toString(16).uppercase().padStart(4, '0')}.")
+    override fun doWriteByte(offset: UShort, value: UByte) {
+        throw RomWriteAttemptException("Attempted to write to ROM at address 0x${(startAddress + offset).toString(16).uppercase().padStart(4, '0')}.")
     }
 }
 
