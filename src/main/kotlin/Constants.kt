@@ -28,6 +28,6 @@ object Constants {
 
     // Memory Map Addresses
     const val PROGRAM_COUNTER_START_ADDRESS: UShort = 0x0000u
-    val ROM_START_ADDRESS: UShort = 0x0000u.toUShort()
+    val ROM_START_ADDRESS: UShort = 0x0000u
     val RAM_START_ADDRESS: UShort = (ROM_START_ADDRESS + ROM_SIZE_BYTES.toUShort()).toUShort()
 }
