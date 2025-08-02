@@ -230,7 +230,7 @@ class MemoryDeviceTest {
     )
     @DisplayName("KeyboardInputDevice readByte parses input correctly")
     fun testKeyboardReadByteParsing(inputString: String?, expectedHex: String) {
-        val keyboard = KeyboardInputDevice(KEYBOARD_TEST_START, 1u)
+        val keyboard = KeyboardInputDevice(KEYBOARD_TEST_START, Constants.KEYBOARD_BUFFER_SIZE_BYTES.toUShort())
         val expectedValue = expectedHex.toUByte(16)
 
         // Convert the nullable inputString to a non-nullable one for the test logic.
@@ -256,7 +256,7 @@ class MemoryDeviceTest {
     @Test
     @DisplayName("KeyboardInputDevice readByte handles invalid offset")
     fun testKeyboardReadByteInvalidOffset() {
-        val keyboard = KeyboardInputDevice(KEYBOARD_TEST_START, 1u)
+        val keyboard = KeyboardInputDevice(KEYBOARD_TEST_START, Constants.KEYBOARD_BUFFER_SIZE_BYTES.toUShort())
         val invalidAddress = (KEYBOARD_TEST_START + 1u).toUShort() // Offset 1, but size is 1
 
         // Redirect System.in with dummy input so readLine() doesn't block
@@ -273,7 +273,7 @@ class MemoryDeviceTest {
     @Test
     @DisplayName("KeyboardInputDevice writeByte throws KeyboardWriteAttemptException")
     fun testKeyboardWriteByteThrowsException() {
-        val keyboard = KeyboardInputDevice(KEYBOARD_TEST_START, 1u)
+        val keyboard = KeyboardInputDevice(KEYBOARD_TEST_START, Constants.KEYBOARD_BUFFER_SIZE_BYTES.toUShort())
         val addressToAttemptWrite = KEYBOARD_TEST_START
         val valueToAttemptWrite = 0xAAu.toUByte()
 
