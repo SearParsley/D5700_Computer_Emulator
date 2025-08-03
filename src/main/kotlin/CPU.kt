@@ -1,5 +1,5 @@
 class CPU(
-    private val timerUnit: TimerUnit
+    internal val timerUnit: TimerUnit
 ) {
 
     private val instructionMap: Map<Int, InstructionStrategy> = mapOf(
@@ -32,7 +32,11 @@ class CPU(
         val instruction = instructionMap[opcodeNibble]
             ?: throw ProgramTerminationException("Unknown opcode 0x${opcodeNibble.toString(16).uppercase()} at address 0x${programCounter.toString(16).uppercase().padStart(4, '0')}")
 
-        instruction.execute(this, byte1, byte2)
+        try {
+            instruction.execute(this, byte1, byte2)
+        } catch (e: Exception) {
+            throw ProgramTerminationException("Error occurred during program execution:\n    $e")
+        }
     }
 
     fun run(cycles: Int) {
