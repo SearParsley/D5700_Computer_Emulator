@@ -6,4 +6,4 @@
 
 ## UML Diagram(s)
 
-![UML Draft 3](img/D5700_Computer_Emulator_Draft_3.svg)
+![UML Draft 4](img/D5700_Computer_Emulator_Draft_4.svg)
