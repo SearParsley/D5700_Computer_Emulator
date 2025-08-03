@@ -23,19 +23,15 @@ class CPU(
 
     fun fetchDecodeExecuteCycle() {
         val programCounter = Registers.P
-
         val byte1 = MemoryController.readByte(programCounter)
         val byte2 = MemoryController.readByte((programCounter + 1u).toUShort())
-
         val opcodeNibble = (byte1.toInt() ushr 4)
-
         val instruction = instructionMap[opcodeNibble]
             ?: throw ProgramTerminationException("Unknown opcode 0x${opcodeNibble.toString(16).uppercase()} at address 0x${programCounter.toString(16).uppercase().padStart(4, '0')}")
-
         try {
             instruction.execute(this, byte1, byte2)
         } catch (e: Exception) {
-            throw ProgramTerminationException("Error occurred during program execution:\n    $e")
+            throw ProgramTerminationException("${e.message}")
         }
     }
 
