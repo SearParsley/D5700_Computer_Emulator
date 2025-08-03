@@ -35,6 +35,11 @@ object MemoryController {
         }
     }
 
+    fun getRenderedScreen(): String? {
+        val screen: AsciiDisplayDevice? = findDevice(Constants.ASCII_DISPLAY_START_ADDRESS) as AsciiDisplayDevice?
+        return screen?.getRenderedScreen()
+    }
+
     private fun findDevice(address: UShort): MemoryDevice? {
         return memoryDevices.find { it.isInRange(address) }
     }
