@@ -5,12 +5,13 @@ import java.io.File
 import java.util.TimerTask
 
 class D5700_System(
+    private val registers: IRegisters,
+    private val memoryController: IMemoryController,
+    private val timerUnit: ITimerUnit,
+    private val memoryDeviceFactory: IMemoryDeviceFactory,
     private val totalRamSize: UShort,
     private val romFilePath: String
 ) {
-    private lateinit var registers: Registers
-    private lateinit var memoryController: MemoryController
-    private lateinit var timerUnit: TimerUnit
     private lateinit var cpu: CPU
 
     private var keyboardInputDevice: KeyboardInputDevice? = null
@@ -33,32 +34,19 @@ class D5700_System(
 
     fun initialize() {
         println("D5700 System: Initializing components...")
-
-        registers = Registers
-        memoryController = MemoryController
-
         val romData = loadRomFromFile(romFilePath)
-
-        // 3. Initialize the Memory Map in the MemoryController
-        // ROM at 0x0000, RAM after ROM, with specified sizes
         memoryController.initializeMemoryMap(ROM_START_ADDRESS, romData, RAM_START_ADDRESS, totalRamSize)
         println("D5700 System: Memory map initialized (ROM: ${romData.size} bytes, RAM: ${totalRamSize} bytes).")
-
-        keyboardInputDevice = MemoryDeviceFactory.createKeyboardInputDevice(KEYBOARD_ADDRESS, KEYBOARD_BUFFER_SIZE)
+        keyboardInputDevice = memoryDeviceFactory.createKeyboardInputDevice(KEYBOARD_ADDRESS, KEYBOARD_BUFFER_SIZE)
         memoryController.addDevice(keyboardInputDevice!!)
-        asciiDisplayDevice = MemoryDeviceFactory.createAsciiDisplayDevice(SCREEN_ADDRESS, SCREEN_BUFFER_SIZE)
+        asciiDisplayDevice = memoryDeviceFactory.createAsciiDisplayDevice(SCREEN_ADDRESS, SCREEN_BUFFER_SIZE)
         memoryController.addDevice(asciiDisplayDevice!!)
         println("D5700 System: I/O devices added to memory map.")
-
-        timerUnit = TimerUnit()
-        println("D5700 System: TimerUnit initialized.")
-
-        cpu = CPU(timerUnit)
+        cpu = CPU(registers, memoryController, timerUnit)
         println("D5700 System: CPU initialized.")
         Runtime.getRuntime().addShutdownHook(Thread {
             shutdown()
         })
-
         println("D5700 System: Initialization complete.")
     }
 

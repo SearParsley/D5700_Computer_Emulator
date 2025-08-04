@@ -20,9 +20,18 @@ fun main() {
     }
 
     // --- 3. Instantiate the D5700_System facade ---
+    val registers = Registers
+    val memoryController = MemoryController
+    val timerUnit = TimerUnit(registers)
+    val memoryDeviceFactory = MemoryDeviceFactory
+
     val system = D5700_System(
+        registers = registers,
+        memoryController = memoryController,
+        timerUnit = timerUnit,
+        memoryDeviceFactory = memoryDeviceFactory,
         totalRamSize = Constants.RAM_SIZE_BYTES.toUShort(), // 4KB of RAM
-        romFilePath = romFileName
+        romFilePath = romFileName,
     )
 
     // --- 4. Initialize the system ---

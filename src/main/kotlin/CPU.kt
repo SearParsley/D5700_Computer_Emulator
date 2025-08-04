@@ -1,30 +1,32 @@
 class CPU(
-    internal val timerUnit: TimerUnit
+    internal val registers: IRegisters,
+    internal val memoryController: IMemoryController,
+    internal val timerUnit: ITimerUnit
 ) {
 
     private val instructionMap: Map<Int, InstructionStrategy> = mapOf(
-        0x0 to StoreInstruction(),
-        0x1 to AddInstruction(),
-        0x2 to SubInstruction(),
-        0x3 to ReadInstruction(),
-        0x4 to WriteInstruction(),
-        0x5 to JumpInstruction(),
-        0x6 to ReadKeyboardInstruction(),
-        0x7 to SwitchMemoryInstruction(),
-        0x8 to SkipEqualInstruction(),
-        0x9 to SkipNotEqualInstruction(),
-        0xA to SetAInstruction(),
-        0xB to SetTInstruction(),
-        0xC to ReadTInstruction(),
-        0xD to ConvertToBase10Instruction(),
-        0xE to ConvertByteToAsciiInstruction(),
-        0xF to DrawInstruction(),
+        0x0 to StoreInstruction(registers),
+        0x1 to AddInstruction(registers),
+        0x2 to SubInstruction(registers),
+        0x3 to ReadInstruction(registers),
+        0x4 to WriteInstruction(registers),
+        0x5 to JumpInstruction(registers),
+        0x6 to ReadKeyboardInstruction(registers),
+        0x7 to SwitchMemoryInstruction(registers),
+        0x8 to SkipEqualInstruction(registers),
+        0x9 to SkipNotEqualInstruction(registers),
+        0xA to SetAInstruction(registers),
+        0xB to SetTInstruction(registers),
+        0xC to ReadTInstruction(registers),
+        0xD to ConvertToBase10Instruction(registers),
+        0xE to ConvertByteToAsciiInstruction(registers),
+        0xF to DrawInstruction(registers),
     )
 
     fun fetchDecodeExecuteCycle() {
-        val programCounter = Registers.P
-        val byte1 = MemoryController.readByte(programCounter)
-        val byte2 = MemoryController.readByte((programCounter + 1u).toUShort())
+        val programCounter = registers.P
+        val byte1 = memoryController.readByte(programCounter)
+        val byte2 = memoryController.readByte((programCounter + 1u).toUShort())
         val opcodeNibble = (byte1.toInt() ushr 4)
         val instruction = instructionMap[opcodeNibble]
             ?: throw ProgramTerminationException("Unknown opcode 0x${opcodeNibble.toString(16).uppercase()} at address 0x${programCounter.toString(16).uppercase().padStart(4, '0')}")

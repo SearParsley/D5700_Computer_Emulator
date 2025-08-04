@@ -21,7 +21,7 @@ class TimerUnitTest {
         Registers.resetForTesting()
         registers = Registers
         fakeTimer = FakeTimer("TestTimer", true)
-        timerUnit = TimerUnit(fakeTimer)
+        timerUnit = TimerUnit(Registers, fakeTimer)
         System.setOut(PrintStream(outputStreamCaptor))
     }
 

@@ -1,18 +1,18 @@
-object MemoryDeviceFactory {
+object MemoryDeviceFactory : IMemoryDeviceFactory {
 
-    fun createRAM(startAddress: UShort, size: UShort): RAM {
+    override fun createRAM(startAddress: UShort, size: UShort): RAM {
         return RAM(startAddress, size)
     }
 
-    fun createROM(startAddress: UShort, size: UShort, initialData: List<UByte>): ROM {
+    override fun createROM(startAddress: UShort, size: UShort, initialData: List<UByte>): ROM {
         return ROM(startAddress, size, initialData)
     }
 
-    fun createAsciiDisplayDevice(startAddress: UShort, size: UShort): AsciiDisplayDevice {
+    override fun createAsciiDisplayDevice(startAddress: UShort, size: UShort): AsciiDisplayDevice {
         return AsciiDisplayDevice(startAddress, size)
     }
 
-    fun createKeyboardInputDevice(startAddress: UShort, size: UShort): KeyboardInputDevice {
+    override fun createKeyboardInputDevice(startAddress: UShort, size: UShort): KeyboardInputDevice {
         return KeyboardInputDevice(startAddress, size)
     }
 }
