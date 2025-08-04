@@ -17,6 +17,7 @@ class CPUTest {
     // Dependencies
     private lateinit var timerUnit: TimerUnit
     private lateinit var cpu: CPU
+    private val registers = Registers
 
     // Helper for I/O and Console Output
     private val standardOut = System.out
@@ -33,7 +34,7 @@ class CPUTest {
     @BeforeEach
     fun setUp() {
         // Reset singletons for a clean slate before each test
-        Registers.resetForTesting()
+        registers.resetForTesting()
         MemoryController.resetForTesting()
 
         // Set up the memory controller with a base ROM and RAM
@@ -45,12 +46,12 @@ class CPUTest {
         MemoryController.addDevice(AsciiDisplayDevice(Constants.ASCII_DISPLAY_START_ADDRESS, Constants.ASCII_DISPLAY_BUFFER_SIZE_BYTES.toUShort()))
 
         // Create the TimerUnit and CPU instances
-        timerUnit = TimerUnit()
-        cpu = CPU(timerUnit)
+        timerUnit = TimerUnit(registers)
+        cpu = CPU(registers, MemoryController, timerUnit)
 
         System.setOut(PrintStream(outputStreamCaptor)) // Redirect System.out
 
-        Registers.P = PC_START
+        registers.P = PC_START
     }
 
     @AfterEach
@@ -63,7 +64,7 @@ class CPUTest {
 
     // --- Helper function to place instruction bytes and run one cycle ---
     private fun executeInstruction(byte1: UByte, byte2: UByte) {
-        val currentPC = Registers.P
+        val currentPC = registers.P
         MemoryController.writeByte(currentPC, byte1)
         MemoryController.writeByte((currentPC + 1u).toUShort(), byte2)
         cpu.fetchDecodeExecuteCycle()
@@ -81,42 +82,42 @@ class CPUTest {
 
         executeInstruction(byte1, byte2)
 
-        assertEquals(testValue, Registers.getGeneralPurposeRegister(targetRegisterIndex))
-        assertEquals((PC_START + 2u).toUShort(), Registers.P)
+        assertEquals(testValue, registers.getGeneralPurposeRegister(targetRegisterIndex))
+        assertEquals((PC_START + 2u).toUShort(), registers.P)
     }
 
     @Test
     @DisplayName("ADD instruction adds two register values and stores in rZ")
     fun testAddInstruction() {
-        Registers.setGeneralPurposeRegister(0, 0x03u) // r0 = 3
-        Registers.setGeneralPurposeRegister(1, 0x05u) // r1 = 5
+        registers.setGeneralPurposeRegister(0, 0x03u) // r0 = 3
+        registers.setGeneralPurposeRegister(1, 0x05u) // r1 = 5
         val byte1 = (0x1 shl 4 or 0).toUByte() // ADD r0, r1, r2
         val byte2 = (1 shl 4 or 2).toUByte() // rY=1, rZ=2
 
         executeInstruction(byte1, byte2)
 
-        assertEquals(0x08u.toUByte(), Registers.getGeneralPurposeRegister(2))
-        assertEquals((PC_START + 2u).toUShort(), Registers.P)
+        assertEquals(0x08u.toUByte(), registers.getGeneralPurposeRegister(2))
+        assertEquals((PC_START + 2u).toUShort(), registers.P)
     }
 
     @Test
     @DisplayName("SUB instruction subtracts two register values and stores in rZ")
     fun testSubInstruction() {
-        Registers.setGeneralPurposeRegister(0, 0x0Au) // r0 = 10
-        Registers.setGeneralPurposeRegister(1, 0x03u) // r1 = 3
+        registers.setGeneralPurposeRegister(0, 0x0Au) // r0 = 10
+        registers.setGeneralPurposeRegister(1, 0x03u) // r1 = 3
         val byte1 = (0x2 shl 4 or 0).toUByte() // SUB r0, r1, r2
         val byte2 = (1 shl 4 or 2).toUByte() // rY=1, rZ=2
 
         executeInstruction(byte1, byte2)
 
-        assertEquals(0x07u.toUByte(), Registers.getGeneralPurposeRegister(2))
-        assertEquals((PC_START + 2u).toUShort(), Registers.P)
+        assertEquals(0x07u.toUByte(), registers.getGeneralPurposeRegister(2))
+        assertEquals((PC_START + 2u).toUShort(), registers.P)
     }
 
     @Test
     @DisplayName("READ instruction reads from memory address A into rX")
     fun testReadInstruction() {
-        Registers.A = (RAM_TEST_START)
+        registers.A = (RAM_TEST_START)
         val testValue = 0xCDu.toUByte()
         MemoryController.writeByte((RAM_TEST_START), testValue) // Write to RAM at address A
 
@@ -125,16 +126,16 @@ class CPUTest {
 
         executeInstruction(byte1, byte2)
 
-        assertEquals(testValue, Registers.getGeneralPurposeRegister(0))
-        assertEquals((PC_START + 2u).toUShort(), Registers.P)
+        assertEquals(testValue, registers.getGeneralPurposeRegister(0))
+        assertEquals((PC_START + 2u).toUShort(), registers.P)
     }
 
     @Test
     @DisplayName("WRITE instruction writes from rX to memory address A")
     fun testWriteInstruction() {
-        Registers.A = RAM_TEST_START
+        registers.A = RAM_TEST_START
         val testValue = 0xABu.toUByte()
-        Registers.setGeneralPurposeRegister(1, testValue) // r1 = 0xAB
+        registers.setGeneralPurposeRegister(1, testValue) // r1 = 0xAB
 
         val byte1 = (0x4 shl 4 or 1).toUByte() // WRITE r1, 00
         val byte2 = 0x00u.toUByte()
@@ -142,7 +143,7 @@ class CPUTest {
         executeInstruction(byte1, byte2)
 
         assertEquals(testValue, MemoryController.readByte(0x1000u))
-        assertEquals((PC_START + 2u).toUShort(), Registers.P)
+        assertEquals((PC_START + 2u).toUShort(), registers.P)
     }
 
     @Test
@@ -154,7 +155,7 @@ class CPUTest {
 
         executeInstruction(byte1, byte2)
 
-        assertEquals(jumpAddress, Registers.P)
+        assertEquals(jumpAddress, registers.P)
     }
 
     @Test
@@ -186,67 +187,67 @@ class CPUTest {
         outputStreamCaptor.reset()
         executeInstruction(byte1, byte2)
 
-        assertEquals(0xABu.toUByte(), Registers.getGeneralPurposeRegister(targetRegisterIndex))
-        assertEquals((PC_START + 2u).toUShort(), Registers.P)
+        assertEquals(0xABu.toUByte(), registers.getGeneralPurposeRegister(targetRegisterIndex))
+        assertEquals((PC_START + 2u).toUShort(), registers.P)
         assertTrue(outputStreamCaptor.toString().contains("Keyboard: awaiting user input"))
     }
 
     @Test
     @DisplayName("SWITCH_MEMORY instruction toggles the M register")
     fun testSwitchMemoryInstruction() {
-        Registers.M = false
+        registers.M = false
         val byte1 = 0x70u.toUByte() // SWITCH_MEMORY 000
         val byte2 = 0x00u.toUByte()
 
         executeInstruction(byte1, byte2)
-        assertTrue(Registers.M)
+        assertTrue(registers.M)
 
         executeInstruction(byte1, byte2)
-        assertFalse(Registers.M)
+        assertFalse(registers.M)
 
-        assertEquals((PC_START + 4u).toUShort(), Registers.P)
+        assertEquals((PC_START + 4u).toUShort(), registers.P)
     }
 
     @Test
     @DisplayName("SKIP_EQUAL instruction skips next instruction if rX equals rY")
     fun testSkipEqualInstruction() {
         // Condition is true: r1 == r2
-        Registers.setGeneralPurposeRegister(1, 0x0Au)
-        Registers.setGeneralPurposeRegister(2, 0x0Au)
+        registers.setGeneralPurposeRegister(1, 0x0Au)
+        registers.setGeneralPurposeRegister(2, 0x0Au)
         val byte1 = (0x8 shl 4 or 1).toUByte() // SKIP_EQUAL r1, r2
         val byte2 = (2 shl 4 or 0).toUByte()
 
         executeInstruction(byte1, byte2)
 
-        assertEquals((PC_START + 4u).toUShort(), Registers.P)
+        assertEquals((PC_START + 4u).toUShort(), registers.P)
 
         // Condition is false: r1 != r2
-        Registers.P = PC_START
-        Registers.setGeneralPurposeRegister(2, 0x0Bu)
+        registers.P = PC_START
+        registers.setGeneralPurposeRegister(2, 0x0Bu)
         executeInstruction(byte1, byte2)
 
-        assertEquals((PC_START + 2u).toUShort(), Registers.P)
+        assertEquals((PC_START + 2u).toUShort(), registers.P)
     }
 
     @Test
     @DisplayName("SKIP_NOT_EQUAL instruction skips next instruction if rX is not equal to rY")
     fun testSkipNotEqualInstruction() {
         // Condition is true: r1 != r2
-        Registers.setGeneralPurposeRegister(1, 0x0Au)
-        Registers.setGeneralPurposeRegister(2, 0x0Bu)
+        registers.setGeneralPurposeRegister(1, 0x0Au)
+        registers.setGeneralPurposeRegister(2, 0x0Bu)
         val byte1 = (0x9 shl 4 or 1).toUByte() // SKIP_NOT_EQUAL r1, r2
         val byte2 = (2 shl 4 or 0).toUByte()
 
         executeInstruction(byte1, byte2)
 
-        assertEquals((PC_START + 4u).toUShort(), Registers.P)
+        assertEquals((PC_START + 4u).toUShort(), registers.P)
 
         // Condition is false: r1 == r2
-        Registers.P = PC_START
-        Registers.setGeneralPurposeRegister(2, 0x0Au)
+        registers.P = PC_START
+        registers.setGeneralPurposeRegister(2, 0x0Au)
         executeInstruction(byte1, byte2)
 
-        assertEquals((PC_START + 2u).toUShort(), Registers.P)
+        assertEquals((PC_START + 2u).toUShort(), registers.P)
     }
 
     @Test
@@ -258,8 +259,8 @@ class CPUTest {
 
         executeInstruction(byte1, byte2)
 
-        assertEquals(testAddress, Registers.A)
-        assertEquals((PC_START + 2u).toUShort(), Registers.P)
+        assertEquals(testAddress, registers.A)
+        assertEquals((PC_START + 2u).toUShort(), registers.P)
     }
 
     @Test
@@ -271,30 +272,30 @@ class CPUTest {
 
         executeInstruction(byte1, byte2)
 
-        assertEquals(testValue, Registers.T)
-        assertEquals((PC_START + 2u).toUShort(), Registers.P)
+        assertEquals(testValue, registers.T)
+        assertEquals((PC_START + 2u).toUShort(), registers.P)
     }
 
     @Test
     @DisplayName("READ_T instruction reads Timer register T into rX")
     fun testReadTInstruction() {
         val testValue = 0x05u.toUByte()
-        Registers.T = testValue
+        registers.T = testValue
         val targetRegisterIndex = 0x1 // r1
         val byte1 = (0xC shl 4 or targetRegisterIndex).toUByte() // READ_T r1
         val byte2 = 0x00u.toUByte()
 
         executeInstruction(byte1, byte2)
 
-        assertEquals(testValue, Registers.getGeneralPurposeRegister(targetRegisterIndex))
-        assertEquals((PC_START + 2u).toUShort(), Registers.P)
+        assertEquals(testValue, registers.getGeneralPurposeRegister(targetRegisterIndex))
+        assertEquals((PC_START + 2u).toUShort(), registers.P)
     }
 
     @Test
     @DisplayName("CONVERT_TO_BASE_10 converts rX to digits in memory at address A")
     fun testConvertToBase10Instruction() {
-        Registers.A = RAM_TEST_START
-        Registers.setGeneralPurposeRegister(1, 255u) // r1 = 255
+        registers.A = RAM_TEST_START
+        registers.setGeneralPurposeRegister(1, 255u) // r1 = 255
 
         val byte1 = (0xD shl 4 or 1).toUByte() // CONVERT_TO_BASE_10 r1
         val byte2 = 0x00u.toUByte()
@@ -304,26 +305,26 @@ class CPUTest {
         assertEquals(2u.toUByte(), MemoryController.readByte(RAM_TEST_START))
         assertEquals(5u.toUByte(), MemoryController.readByte((RAM_TEST_START + 1u).toUShort()))
         assertEquals(5u.toUByte(), MemoryController.readByte((RAM_TEST_START + 2u).toUShort()))
-        assertEquals((PC_START + 2u).toUShort(), Registers.P)
+        assertEquals((PC_START + 2u).toUShort(), registers.P)
     }
 
     @Test
     @DisplayName("CONVERT_BYTE_TO_ASCII converts digit in rX to ASCII in rY")
     fun testConvertByteToAsciiInstruction() {
-        Registers.setGeneralPurposeRegister(0, 0x0Au) // r0 = 10 (hex A)
+        registers.setGeneralPurposeRegister(0, 0x0Au) // r0 = 10 (hex A)
         val byte1 = (0xE shl 4 or 0).toUByte() // CONVERT_BYTE_TO_ASCII r0, r1
         val byte2 = (1 shl 4 or 0).toUByte() // rY = 1
 
         executeInstruction(byte1, byte2)
 
-        assertEquals('A'.code.toUByte(), Registers.getGeneralPurposeRegister(1))
-        assertEquals((PC_START + 2u).toUShort(), Registers.P)
+        assertEquals('A'.code.toUByte(), registers.getGeneralPurposeRegister(1))
+        assertEquals((PC_START + 2u).toUShort(), registers.P)
     }
 
     @Test
     @DisplayName("CONVERT_BYTE_TO_ASCII throws error if rX is > 0xF")
     fun testConvertByteToAsciiInstructionError() {
-        Registers.setGeneralPurposeRegister(0, 0x10u) // r0 = 16 (invalid hex digit)
+        registers.setGeneralPurposeRegister(0, 0x10u) // r0 = 16 (invalid hex digit)
         val byte1 = (0xE shl 4 or 0).toUByte()
         val byte2 = (1 shl 4 or 0).toUByte()
 
@@ -340,9 +341,9 @@ class CPUTest {
         val testRow = 1u.toUByte()
         val testCol = 5u.toUByte()
 
-        Registers.setGeneralPurposeRegister(1, testChar) // r1 = 'C'
-        Registers.setGeneralPurposeRegister(2, testRow) // r2 = 1 (row)
-        Registers.setGeneralPurposeRegister(3, testCol) // r3 = 5 (col)
+        registers.setGeneralPurposeRegister(1, testChar) // r1 = 'C'
+        registers.setGeneralPurposeRegister(2, testRow) // r2 = 1 (row)
+        registers.setGeneralPurposeRegister(3, testCol) // r3 = 5 (col)
 
         val byte1 = (0xF shl 4 or 1).toUByte() // DRAW r1, r2, r3
         val byte2 = (2 shl 4 or 3).toUByte()
@@ -355,13 +356,13 @@ class CPUTest {
         executeInstruction(byte1, byte2)
 
         assertEquals(testChar, MemoryController.readByte(expectedScreenAddress))
-        assertEquals((PC_START + 2u).toUShort(), Registers.P)
+        assertEquals((PC_START + 2u).toUShort(), registers.P)
     }
 
     @Test
     @DisplayName("DRAW instruction throws error if character is > 0x7F")
     fun testDrawInstructionErrorOnInvalidChar() {
-        Registers.setGeneralPurposeRegister(1, 0x80u) // r1 = invalid char
+        registers.setGeneralPurposeRegister(1, 0x80u) // r1 = invalid char
         val byte1 = (0xF shl 4 or 1).toUByte()
         val byte2 = (2 shl 4 or 3).toUByte()
 
@@ -374,9 +375,9 @@ class CPUTest {
     @Test
     @DisplayName("DRAW instruction throws error if row or column are invalid")
     fun testDrawInstructionErrorOnInvalidLocation() {
-        Registers.setGeneralPurposeRegister(1, 'A'.code.toUByte())
-        Registers.setGeneralPurposeRegister(2, 8u) // r2 = invalid row
-        Registers.setGeneralPurposeRegister(3, 0u)
+        registers.setGeneralPurposeRegister(1, 'A'.code.toUByte())
+        registers.setGeneralPurposeRegister(2, 8u) // r2 = invalid row
+        registers.setGeneralPurposeRegister(3, 0u)
         val byte1 = (0xF shl 4 or 1).toUByte()
         val byte2 = (2 shl 4 or 3).toUByte()
 
